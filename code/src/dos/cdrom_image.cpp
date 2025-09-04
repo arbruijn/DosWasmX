@@ -1,3 +1,4 @@
+#define CHD
 /*
  *  Copyright (C) 2002-2021  The DOSBox Team
  *
@@ -46,35 +47,37 @@
 #include "logging.h"
 #include "support.h"
 #include "setup.h"
-//#include "src/libs/decoders/audio_convert.c"
-//#include "src/libs/decoders/SDL_sound.c"
-//#include "src/libs/decoders/vorbis.c"
-//#include "src/libs/decoders/flac.c"
-//#include "src/libs/decoders/opus.c"
-//#include "src/libs/decoders/wav.c"
-//#include "src/libs/decoders/mp3_seek_table.cpp"
-//#include "src/libs/decoders/mp3.cpp"
-//#include "src/libs/libchdr/chd.h"
-//#include "src/libs/libchdr/libchdr_chd.c"
-//#include "src/libs/libchdr/libchdr_cdrom.c"
-//#include "src/libs/libchdr/libchdr_flac.c"
-//#include "src/libs/libchdr/libchdr_huffman.c"
-//#include "src/libs/libchdr/libchdr_bitstream.c"
-//#include "src/libs/libchdr/FLAC/stream_decoder.c"
-//#include "src/libs/libchdr/FLAC/bitreader.c"
-//#include "src/libs/libchdr/FLAC/format.c"
-//#include "src/libs/libchdr/FLAC/cpu.c"
-//#include "src/libs/libchdr/FLAC/crc.c"
-//#include "src/libs/libchdr/FLAC/fixed.c"
-//#include "src/libs/libchdr/FLAC/lpc.c"
-//#include "src/libs/libchdr/FLAC/md5.c"
-//#include "src/libs/libchdr/FLAC/memory.c"
+#ifdef CHD
+#include "src/libs/decoders/audio_convert.c"
+#include "src/libs/decoders/SDL_sound.c"
+#include "src/libs/decoders/vorbis.c"
+#include "src/libs/decoders/flac.c"
+#include "src/libs/decoders/opus.c"
+#include "src/libs/decoders/wav.c"
+#include "src/libs/decoders/mp3_seek_table.cpp"
+#include "src/libs/decoders/mp3.cpp"
+#include "src/libs/libchdr/chd.h"
+#include "src/libs/libchdr/libchdr_chd.c"
+#include "src/libs/libchdr/libchdr_cdrom.c"
+#include "src/libs/libchdr/libchdr_flac.c"
+#include "src/libs/libchdr/libchdr_huffman.c"
+#include "src/libs/libchdr/libchdr_bitstream.c"
+#include "src/libs/libchdr/FLAC/stream_decoder.c"
+#include "src/libs/libchdr/FLAC/bitreader.c"
+#include "src/libs/libchdr/FLAC/format.c"
+#include "src/libs/libchdr/FLAC/cpu.c"
+#include "src/libs/libchdr/FLAC/crc.c"
+#include "src/libs/libchdr/FLAC/fixed.c"
+#include "src/libs/libchdr/FLAC/lpc.c"
+#include "src/libs/libchdr/FLAC/md5.c"
+#include "src/libs/libchdr/FLAC/memory.c"
 #if defined(WIN32) && !defined(HX_DOS) && !(defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR))
-//#include "src/libs/libchdr/FLAC/windows_unicode_filenames.c"
+#include "src/libs/libchdr/FLAC/windows_unicode_filenames.c"
 #endif
-//#include "src/libs/libchdr/lzma/LzmaDec.c"
-//#include "src/libs/libchdr/lzma/LzmaEnc.c"
-//#include "src/libs/libchdr/lzma/LzFind.c"
+#include "src/libs/libchdr/lzma/LzmaDec.c"
+#include "src/libs/libchdr/lzma/LzmaEnc.c"
+#include "src/libs/libchdr/lzma/LzFind.c"
+#endif
 
 using namespace std;
 
@@ -289,18 +292,21 @@ int64_t CDROM_Interface_Image::AudioFile::getLength()
 CDROM_Interface_Image::CHDFile::CHDFile(const char* filename, bool& error)
     :TrackFile(RAW_SECTOR_SIZE) // CDAudioCallBack needs 2352
 {
-    /*error = chd_open(filename, CHD_OPEN_READ, NULL, &this->chd) != CHDERR_NONE;
+#ifdef CHD
+    error = chd_open(filename, CHD_OPEN_READ, NULL, &this->chd) != CHDERR_NONE;
     if (!error) {
         this->header           = chd_get_header(this->chd);
         this->hunk_buffer      = new uint8_t[this->header->hunkbytes];
         this->hunk_buffer_next = new uint8_t[this->header->hunkbytes];
-    }*/
+    }
+#endif
 }
 
 CDROM_Interface_Image::CHDFile::~CHDFile()
 {
+#ifdef CHD
     // Guard: only cleanup if needed
-    /*if (this->chd) {
+    if (this->chd) {
         chd_close(this->chd);
         this->chd = nullptr;
     }
@@ -310,13 +316,14 @@ CDROM_Interface_Image::CHDFile::~CHDFile()
         this->hunk_buffer = nullptr;
     }
 
-#if !defined(HX_DOS) && !(defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR))
+#if !defined(__EMSCRIPTEN__) && !defined(HX_DOS) && !(defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR))
     if (this->hunk_thread) {
         this->hunk_thread->join();
         delete hunk_thread;
         this->hunk_thread = nullptr;
     }
-#endif*/
+#endif
+#endif
 }
 
 //#if !defined(HX_DOS) && !(defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR))
@@ -329,63 +336,66 @@ CDROM_Interface_Image::CHDFile::~CHDFile()
 
 bool CDROM_Interface_Image::CHDFile::read(uint8_t* buffer,int64_t offset, int count)
 {
+#ifdef CHD
     // we can not read more than a single sector currently
-//    if (count > RAW_SECTOR_SIZE) {
-//        return false;
-//    }
-//
-//    uint64_t needed_hunk = (uint64_t)offset / (uint64_t)this->header->hunkbytes;
-//
-//    // EOF
-//    if (needed_hunk > this->header->totalhunks) {
-//        return false;
-//    }
-//
-//    // read new hunk if needed
-//    if ((int)needed_hunk != this->hunk_buffer_index) {
-//#if defined(HX_DOS) || defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR)
-//        if (chd_read(this->chd, needed_hunk, this->hunk_buffer) != CHDERR_NONE)
-//            return false;
-//#else
-//        // make sure our thread is done
-//        if (this->hunk_thread) this->hunk_thread->join();
-//
-//        // can we use our prefetched hunk
-//        if (((int)needed_hunk == (this->hunk_buffer_index + 1)) && (!this->hunk_thread_error)) {
-//            // swap pointers and we're good :)
-//            std::swap(this->hunk_buffer, this->hunk_buffer_next);
-//
-//        } else {
-//            // read new hunk
-//            bool error = true;
-//            hunk_thread_func(this->chd, (int)needed_hunk, this->hunk_buffer, &error);
-//            if (error) {
-//                return false;
-//            }
-//        }
-//#endif
-//
-//        this->hunk_buffer_index = (int)needed_hunk;
-//
-//#if !defined(HX_DOS) && !(defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR))
-//        // prefetch: let our thread decode the next hunk
-//        if (hunk_thread) delete this->hunk_thread;
-//        this->hunk_thread = new std::thread(
-//            [this, needed_hunk]() {
-//                hunk_thread_func(this->chd, (int)(needed_hunk + 1), this->hunk_buffer_next, &this->hunk_thread_error);
-//            }
-//        );
-//#endif
-//    }
-//
-//    // copy data
-//    // the overlying read code thinks there is a sync header
-//    // so for 2048 sector size images we need to subtract 16 from the offset to account for the missing sync header
-//    uint8_t* source = this->hunk_buffer + ((uint64_t)offset - (uint64_t)needed_hunk * this->header->hunkbytes) - ((uint64_t)16 * this->skip_sync);
-//    memcpy(buffer, source, min(count, RAW_SECTOR_SIZE));
-//
-//    return true;
-	return false;
+    if (count > RAW_SECTOR_SIZE) {
+        return false;
+    }
+
+    uint64_t needed_hunk = (uint64_t)offset / (uint64_t)this->header->hunkbytes;
+
+    // EOF
+    if (needed_hunk > this->header->totalhunks) {
+        return false;
+    }
+
+    // read new hunk if needed
+    if ((int)needed_hunk != this->hunk_buffer_index) {
+#if defined(__EMSCRIPTEN__) || defined(HX_DOS) || defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR)
+        if (chd_read(this->chd, needed_hunk, this->hunk_buffer) != CHDERR_NONE)
+            return false;
+#else
+        // make sure our thread is done
+        if (this->hunk_thread) this->hunk_thread->join();
+
+        // can we use our prefetched hunk
+        if (((int)needed_hunk == (this->hunk_buffer_index + 1)) && (!this->hunk_thread_error)) {
+            // swap pointers and we're good :)
+            std::swap(this->hunk_buffer, this->hunk_buffer_next);
+
+        } else {
+            // read new hunk
+            bool error = true;
+            hunk_thread_func(this->chd, (int)needed_hunk, this->hunk_buffer, &error);
+            if (error) {
+                return false;
+            }
+        }
+#endif
+
+        this->hunk_buffer_index = (int)needed_hunk;
+
+#if !defined(__EMSCRIPTEN__) && !defined(HX_DOS) && !(defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR))
+        // prefetch: let our thread decode the next hunk
+        if (hunk_thread) delete this->hunk_thread;
+        this->hunk_thread = new std::thread(
+            [this, needed_hunk]() {
+                hunk_thread_func(this->chd, (int)(needed_hunk + 1), this->hunk_buffer_next, &this->hunk_thread_error);
+            }
+        );
+#endif
+    }
+
+    // copy data
+    // the overlying read code thinks there is a sync header
+    // so for 2048 sector size images we need to subtract 16 from the offset to account for the missing sync header
+    uint8_t* source = this->hunk_buffer + ((uint64_t)offset - (uint64_t)needed_hunk * this->header->hunkbytes) - ((uint64_t)16 * this->skip_sync);
+    memcpy(buffer, source, min(count, RAW_SECTOR_SIZE));
+
+    return true;
+#else
+    return false;
+#endif
 }
 
 int64_t CDROM_Interface_Image::CHDFile::getLength()
@@ -409,11 +419,11 @@ bool CDROM_Interface_Image::CHDFile::seek(int64_t offset)
 {
     // only checks if seek range is valid ? only used for audio ?
     // only used by PlayAudioSector ?
-    //if ((uint32_t)((uint64_t)offset / this->header->hunkbytes) < this->header->hunkcount) {
-    //    return true;
-    //} else {
-    //    return false;
-    //}
+    if ((uint32_t)((uint64_t)offset / this->header->hunkbytes) < this->header->hunkcount) {
+        return true;
+    } else {
+        return false;
+    }
 	return false;
 }
 
@@ -1213,8 +1223,134 @@ std::vector<string> split_string_to_list(const std::string& str, const std::stri
 
 bool CDROM_Interface_Image::LoadChdFile(char* chdfile)
 {
+#ifdef CHD
+    /*
+        ToDo:
+            - check if this is a CD and not an HDD CHD
+            - check for CDROM_TRACK_METADATA_TAG or CDROM_OLD_METADATA_TAG (?)
+    */
+    tracks.clear();
+    bool     error       = true;
+    CHDFile* file        = new CHDFile(chdfile, error);
+    Track    track       = { 0, 0, 0, 0, 0, 0, 0, false, file };
+    int      shift       = 0;
+    int      currPregap  = 0;
+    int      totalPregap = 0;
+    int      prestart    = -1;
+    if (!error) {
+        // iterate over all track entries
+        char   metadata[256];
+        int    index        = 0;
+        UINT32 count        = 0;
+        UINT32 tag          = 0;
+        UINT8  flags        = 0;
+        int    total_frames = 0;
+        while (chd_get_metadata(file->getChd(), CDROM_TRACK_METADATA2_TAG, index, &metadata, 256, &count, &tag, &flags) == CHDERR_NONE) {
+            // parse track
+            // TRACK:1 TYPE:MODE1_RAW SUBTYPE:NONE FRAMES:206931 PREGAP:0 P
+            std::vector<string> tokens = split_string_to_list(metadata, " ");
+            track.start                = 0;
+            track.skip                 = 0;
+            currPregap                 = 0;
+            prestart                   = -1;
+            for (unsigned int i = 0; i < tokens.size(); i++) {
+                // "TRACK:1" > "TRACK" "1"
+                std::vector<string> track_meta = split_string_to_list(tokens[i], ":");
+                std::string         key        = track_meta[0];
+                std::string         value      = track_meta[1];
 
+                if (key == "TRACK") {
+                    // track index
+                    track.number = std::stoi(value);
+                } else if (key == "TYPE") {
+                    // track type
+                    if (value == "AUDIO") {
+                        track.sectorSize = RAW_SECTOR_SIZE;
+                        track.attr       = 0;
+                        track.mode2      = false;
+                    } else if (value == "MODE1") {
+                        track.sectorSize = COOKED_SECTOR_SIZE;
+                        track.attr       = 0x40;
+                        track.mode2      = false;
+                        file->skip_sync  = true;
+                    } else if (value == "MODE1_RAW") {
+                        track.sectorSize = RAW_SECTOR_SIZE;
+                        track.attr       = 0x40;
+                        track.mode2      = false;
+                    } else if (value == "MODE2") {
+                        track.sectorSize = 2336;
+                        track.attr       = 0x40;
+                        track.mode2      = true;
+                    } else if (value == "MODE2_FORM1") {
+                        track.sectorSize = COOKED_SECTOR_SIZE;
+                        track.attr       = 0x40;
+                        track.mode2      = true;
+                        file->skip_sync  = true;
+                    } else if (value == "MODE2_FORM2") {
+                        track.sectorSize = 2336;
+                        track.attr       = 0x40;
+                        track.mode2      = true;
+                    } else if (value == "MODE2_RAW") {
+                        track.sectorSize = RAW_SECTOR_SIZE;
+                        track.attr       = 0x40;
+                        track.mode2      = true;
+                    } else {
+                        // unknown track mode
+                        return false;
+                    };
+                } else if (key == "SUBTYPE") {
+                    if (value == "RAW") {
+                        //track.sectorSize += 96;
+                        // is subchannel data even supported?
+                    }
+                } else if (key == "FRAMES") {
+                    int frames    = std::stoi(value);
+                    track.start   = total_frames;
+                    total_frames += frames;
+                    track.length  = frames;
+
+                } else if (key == "PREGAP") {
+                    currPregap = std::stoi(value);
+                }
+
+            }
+
+            // chd has the pregap added to FRAMES
+            // this is needed or track.start and track.length do not match with LoadCueSheet for the same image
+            // creates the same track list as LoadCueSheet
+            if (currPregap) {
+                prestart      = track.start;
+                track.start  += currPregap;
+                track.length -= currPregap;
+            }
+
+            track.sectorSize = 2448; // chd always uses 2448
+            if (!AddTrack(track, shift, prestart, totalPregap, 0)) {
+                return false;
+            }
+
+            index += 1;
+        }
+
+        // no tracks found
+        if (tracks.empty()) return false;
+
+        // add leadout track
+        track.number++;
+        track.attr   = 0; // sync with load iso
+        track.start  = 0;
+        track.length = 0;
+        track.file   = NULL;
+        if (!AddTrack(track, shift, -1, totalPregap, 0)) return false;
+
+        return true;
+
+    } else {
+        return false;
+    }
+#else
 	return false;
+#endif
 }
 
 bool CDROM_Interface_Image::AddTrack(Track &curr, int &shift, int prestart, int &totalPregap, int currPregap)

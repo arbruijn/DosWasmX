@@ -35,8 +35,8 @@
 
 #include "mem.h"
 #include "mixer.h"
-//#include "../libs/decoders/SDL_sound.h"
-//#include "../libs/libchdr/chd.h"
+#include "../libs/decoders/SDL_sound.h"
+#include "../libs/libchdr/chd.h"
 
 #if defined(C_SDL2) /* SDL 1.x defines this, SDL 2.x does not */
 /** @name Frames / MSF Conversion Functions
@@ -297,10 +297,10 @@ private:
         uint8_t         getChannels() { return 2; }
         int64_t         getLength();
         void setAudioPosition(uint32_t pos) { audio_pos = pos; }
-        //chd_file*       getChd() { return this->chd; }
+        chd_file*       getChd() { return this->chd; }
     private:
-        //      chd_file*   chd               = nullptr;
-        //const chd_header* header            = nullptr; // chd header
+              chd_file*   chd               = nullptr;
+        const chd_header* header            = nullptr; // chd header
                 /*
                     TODO: cache more than one hunk
                     or wait for https://github.com/rtissera/libchdr/issues/36
@@ -308,7 +308,7 @@ private:
               uint8_t*     hunk_buffer       = nullptr; // buffer to hold one hunk // size of hunks in CHD up to 1 MiB
               uint8_t*     hunk_buffer_next  = nullptr; // index + 1 prefetch
               int          hunk_buffer_index = -1;      // hunk index for buffer
-#if !defined(HX_DOS) && !(defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR))
+#if !defined(__EMSCRIPTEN__) && !defined(HX_DOS) && !(defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR))
               std::thread* hunk_thread       = nullptr; // used for prefetch
               bool         hunk_thread_error = true;
 #endif

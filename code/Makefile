@@ -238,6 +238,7 @@ CPPFILES := \
 FILES := $(patsubst %.c,%.o,$(CFILES)) $(patsubst %.cpp,%.o,$(CPPFILES))
 
 MYFLAGS := \
+    -I. \
     -I./include \
     -I./zlib \
 	-D__LIBRETRO__ \
